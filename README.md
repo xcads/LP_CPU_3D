@@ -3,7 +3,7 @@
 ## TO DO LIST
 
 
-0`Read the book`
+~~0`Read the book`~~
 
 
 1`.Transformation`
