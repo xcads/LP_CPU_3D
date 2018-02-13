@@ -2,6 +2,10 @@
 
 ## TO DO LIST
 
+
+0`Read the book`
+
+
 1`.Transformation`
 
 2.Projection
