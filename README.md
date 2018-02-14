@@ -5,11 +5,17 @@
 
 ~~0`Read the book`~~
 
+`1. Solve the line`
 
-1`.Transformation`
+2. transformation
 
-2.Projection
+3. do the projection
 
-3.Judge
+4. achieve the Oracle
 
-4.Input and output
+5. find the solution
+
+6. debug it
+
+7. report
+
