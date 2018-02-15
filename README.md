@@ -7,9 +7,10 @@
 
 `1. Solve the line`
 
-2. transformation
+~~2. transformation~~
 
-3. do the projection
+
+~~3. do the projection(do not need to do it now)~~
 
 4. achieve the Oracle
 
