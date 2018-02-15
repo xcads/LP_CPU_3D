@@ -9,6 +9,8 @@
 
 ~~2. transformation~~
 
+~~find the line~~
+
 
 ~~3. do the projection(do not need to do it now)~~
 
