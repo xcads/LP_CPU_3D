@@ -16,6 +16,8 @@
 
 4. achieve the Oracle
 
+change to use some definition to achieve this function not Oracle 
+
 5. find the solution
 
 6. debug it
