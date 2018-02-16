@@ -5,7 +5,7 @@
 
 ~~0`Read the book`~~
 
-`1. Solve the line`
+~~`1. Solve the line`~~
 
 ~~2. transformation~~
 
@@ -14,11 +14,13 @@
 
 ~~3. do the projection(do not need to do it now)~~
 
-4. achieve the Oracle
+~~4. achieve the Oracle~~
 
-change to use some definition to achieve this function not Oracle 
+~~change to use some definition to achieve this function not Oracle ~~
 
 5. find the solution
+
+   Using theapporach by paper
 
 6. debug it
 
