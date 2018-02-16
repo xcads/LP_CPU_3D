@@ -14,9 +14,7 @@
 
 ~~3. do the projection(do not need to do it now)~~
 
-~~4. achieve the Oracle~~
-
-~~change to use some definition to achieve this function not Oracle ~~
+~~4. achieve the Oracale change to use some definition to achieve this function not Orac
 
 5. find the solution
 
