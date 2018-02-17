@@ -25,3 +25,5 @@
 
 7. report
 
+
+(I should finish the CS3230 and CS3243 assignment first and do the code)
