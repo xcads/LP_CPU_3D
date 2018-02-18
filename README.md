@@ -21,9 +21,9 @@
 
    Using theapporach by paper
 
-6. debug it
+6. debug t
 
-7. report
+7. repot(deadline)
 
 
-(I should finish the CS3230 and CS3243 assignment first and do the code)
+~~(I should finish the CS3230 and CS3243 assignment first and do the code)~~
