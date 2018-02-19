@@ -26,7 +26,7 @@
 
    Using the apporach by paper
    
- 
+ should do the apporach before 20
 
 6. debug t
 
