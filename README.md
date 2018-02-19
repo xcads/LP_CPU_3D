@@ -17,9 +17,14 @@
 ~~4. achieve the Oracale~~
 
 ~~do some 2D work to this prject~~
+
+
+a. find some simplex way to slove this problem.
+
+
 5. find the solution
 
-   Using theapporach by paper
+   Using the apporach by paper
 
 6. debug t
 
