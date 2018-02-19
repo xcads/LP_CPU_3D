@@ -19,12 +19,14 @@
 ~~do some 2D work to this prject~~
 
 
-a. find some simplex way to slove this problem.
+~~a. find some simplex way to slove this problem.~~
 
 
 5. find the solution
 
    Using the apporach by paper
+   
+ 
 
 6. debug t
 
