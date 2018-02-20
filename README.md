@@ -6,4 +6,4 @@
 
 2.find the optimal line
 
-3.
+3.debug
