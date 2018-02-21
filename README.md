@@ -2,8 +2,8 @@
 
 ## TO DO LIST
 
-1.find the move apporah
+~~1.find the move apporah~~
 
-2.find the optimal line
+~~2.find the optimal line~~
 
 3.debug
