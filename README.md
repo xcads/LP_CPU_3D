@@ -6,4 +6,11 @@
 
 ~~2.find the optimal line~~
 
+
+    a. do the line and find the equations
+    
+  
+
+  
+
 3.debug
