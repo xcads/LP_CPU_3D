@@ -8,7 +8,7 @@
 
 
     a. do the line and find the equations
-    
+    b. prune&search VS simplex(ppt)   
   
 
   
