@@ -7,9 +7,12 @@
 ~~2.find the optimal line~~
 
 
-    a. do the line and find the equations
+   ~~ a. do the line and find the equations~~
+   
+
     b. prune&search VS simplex(ppt)   
-  
+    
+    c.find the optimal
 
   
 
