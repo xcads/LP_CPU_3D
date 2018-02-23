@@ -1,7 +1,7 @@
 /*
 Author: @Johanan Luo
 Time: begin at 2018/2/10
-Version: 
+Version:
 This is a sysytem to solve linear problem in 3-D.
 This is a new way about prune&&search
 It takes linear time in theory.
@@ -48,7 +48,7 @@ struct Obfunc {
 // the Line of two flats
 struct Line {
 	//d1x +d2y =e
-	double d1, d2 ,e;
+	double d1, d2, e;
 	double DX, DY, DZ;
 	struct flat *f1, *f2;
 };
@@ -57,13 +57,14 @@ struct Pair
 	int index;
 	struct flat f1, f2;
 	struct Line line;
+	struct Line_2D linexy;
 	bool symbol;
 };
 
 //two lines' vertex
 struct Vertex
 {
-	double x, y, z;
+	double x, y,z;
 };
 struct Line_2D {
 	// a1x + a2y >= b
@@ -84,32 +85,44 @@ struct Vertex_2D {
 };
 
 // PAIR structure
-struct Pair {
+struct Pair_2D {
 	int index;
-	Line_2D Line_2D1, Line_2D2;
+	struct Line_2D line1, line2;
+	flat f1, f2;
 	Vertex_2D v1;
+	int indexPair1, indexPair2;
 	bool symbol;
+};
+
+struct PairXY {
+	int index;
+	int indexOfP1;
+	int indexOfP2;
+	struct Line_2D line1, line2;
+	Vertex_2D point;
+	bool  symbol;
 };
 
 typedef struct Line_2D Line_2D;
 typedef struct Objfunc_2D Objfunc_2D;
 typedef struct Vertex_2D Vertex_2D;
-
-vector<struct Line_2D> originalC;
-
+typedef struct PairXY PairXY;
 
 typedef struct flat flat;
 typedef struct Line line;
 typedef struct Obfunc obfunc;
 typedef struct Pair pair;
 typedef struct Vertex vertex;
-
+typedef struct PairXY PairXY;
 vector<struct flat> originalC;
 
 struct Vertex_2D Answer;
 struct Vertex ver_answer;
 struct Line line_answer;
 struct flat flat_answer;
+
+vector<struct flat> OriginalC;
+vector<struct Line_2D> lineC;
 //make objective function conincides with x-y axis
 double transformationAngle(struct Obfunc *obfunc, struct Line *line) {
 	double angle;
@@ -143,14 +156,15 @@ double transformationAngle(struct Obfunc *obfunc, struct Line *line) {
 
 
 }
-bool transformation(struct flat *flat, struct flat *nflat, struct Obfunc *obfucn, struct Line *line) {
+bool transformation(struct flat *flat, struct flat *nflat, struct Obfunc *obfucn) {
 	//double transformationSlope = -(object.r1 / object.r2);
+	struct Line *line = (struct Line*)malloc(sizeof(struct Line));
 	double angle = transformationAngle(obfucn, line);
 
 	double symbol = sqrt(line->DX*line->DX + line->DY*line->DY + line->DZ*line->DZ);
-	double a = line->DX/symbol;
-	double b = line->DY/symbol;
-	double c = line->DZ/symbol;
+	double a = line->DX / symbol;
+	double b = line->DY / symbol;
+	double c = line->DZ / symbol;
 	double A = flat->a1;
 	double B = flat->a2;
 	double C = flat->a3;
@@ -175,7 +189,7 @@ bool transformation(struct flat *flat, struct flat *nflat, struct Obfunc *obfucn
 
 	Vvector(nflat);
 	nflat->symbol = true;
-
+	free(line);
 	return true;
 }
 
@@ -193,7 +207,7 @@ void Vvector(struct flat *flat) {
 }
 
 //find the two flats' line
-bool findLines(struct flat *flat1,struct flat *flat2, struct Line *l1) {
+bool findLines(struct flat *flat1, struct flat *flat2, struct Line *l1) {
 	if (abs(flat1->a1*flat2->a2 - flat1->a2*flat2->a1) < 1e-6 && abs(flat1->a3*flat2->a2 - flat1->a2*flat2->a3)) {
 		l1 = NULL;
 		return false;
@@ -220,31 +234,134 @@ bool findLines(struct flat *flat1,struct flat *flat2, struct Line *l1) {
 		else {
 			l1->d1 = 0;
 			l1->d2 = (flat1->b - bT1) / (flat1->a2);
-			}
 		}
-		return true;
 	}
-
-bool allocate(struct flat *flat) {
-	int i = 0;
-		while (1) {
-			if (flat[i].op == '>='&&flat[i].b != 0) {
-				flat[i].groupNumber = 1;
-			}
-			else if (flat[i].op == '<='&&flat[i].b != 0) {
-				flat[i].groupNumber = 1;
-			}
-			else {
-				flat[i].groupNumber = 3;
-			}
-			flat[i].symbol = false;
-			i++;
-	}
-	
+	return true;
 }
 
+bool allocate(struct flat flats[],struct Obfunc *objfunc,int index, int *numG, int *numH, int *numE ) {
+	(*numG) = (*numH) = (*numE) = 0;
+	int i = 0;
+		for (; i < index; i++) {
+			transformation(&originalC[i], &flats[i], objfunc);
+			if (abs(flats[i].a3) < 1e-6)
+				(*numG)++;
+			else if (flats[i].a3 < 0)
+				(*numH)++;
+			else if (flats[i].a3 > 0)
+				(*numE)++;
+	}
+		return true;
+}
+
+//do some segemention
+void JudgeGHE(struct flat F1[], struct flat F2[], struct flat F3[], struct flat flats[], int *numG, int *numH, int *numE ) {
+	int g=0, h = 0,e = 0;
+	int numC = (*numG) + (*numH) + (*numE);
+	int i = 0;
+	for (; i < numC; i++) {
+		if (abs(flats[i].a3) < 1e-6) {
+			//#g++;
+			//a3z>a1x+a2y+b
+			F1[g].a1 = -flats[i].a1 / flats[i].a3;
+			F1[g].a2 = -flats[i].a2 / flats[i].a3;
+			F1[g].a3 = 1;
+			F1[g].b = flats[i].b / flats[i].a3;
+			F1[g].VX = flats[i].VX;
+			F1[g].VY = flats[i].VY;
+			F1[g].VZ = flats[i].VZ;
+			F1[g].symbol = true;
+			g++;
+		}
+		else if (abs(flats[i].a3) < 0) {
+			//#h++;
+			//a3z<a1x+a2y+b
+			F2[h].a1 = -flats[i].a1 / flats[i].a3;
+			F2[h].a2 = -flats[i].a2 / flats[i].a3;
+			F2[h].a3 = 1;
+			F2[h].b = flats[i].b / flats[i].a3;
+			F2[h].VX = flats[i].VX;
+			F2[h].VY = flats[i].VY;
+			F2[h].VZ = flats[i].VZ;	
+			F2[g].symbol = true;
+			h++;
+		}
+		else if (abs(flats[i].a3) > 0) {
+			//#g++;
+			//0<a1x+a2y+b
+			F3[e].a1 = -flats[i].a1 / flats[i].a3;
+			F3[e].a2 = -flats[i].a2 / flats[i].a3;
+			F3[e].a3 = 1;
+			F3[e].b = flats[i].b / flats[i].a3;
+			F3[e].VX = flats[i].VX;
+			F3[e].VY = flats[i].VY;
+			F3[e].VZ = flats[i].VZ;
+			e++;
+		}
+	}
+
+	return;
+}
+
+bool Judgeparallel(struct flat *f1, struct flat *f2) {
+	double judge1 = abs(f1->VX*f2->VY - f2->VX*f1->VY);
+	double judge2 = abs(f1->VX*f2->VZ - f2->VX*f1->VZ);
+	double judge3= abs(f1->VY*f2->VZ - f2->VY*f1->VZ);
+	if (judge1 < 1e-6&&judge2 < 1e-6&&judge3 < 1e-6) 
+		return true;
+	
+	else
+		return false;
+}
+//find lines in xy-planes
+bool intersection(struct Line_2D *l1, struct Line_2D *l2, struct Vertex_2D *v1) 
+{
+	if (abs(l1->a1*l2->a2 - l2->a1*l1->a2) < 1e-6)
+	{
+		v1 = NULL;
+		return false;
+	}
+	v1->x = -(l1->b*l2->a2 - l2->b*l1 -> a2) / (l1->a1*l2->a2 - l2->a1*l1->a2);
+	v1->y = (l1->b*l2->a1 - l2->b*l1->a1) / (l1->a2*l2->a1 - l1->a1*l2->a2);
+	return true;
+
+}
+bool projectionXY(struct Line *line, struct Line_2D *linxy) {
+	struct Vertex_2D *vxy = (struct Vertex_2D*)malloc(sizeof(struct Vertex_2D));
+	vxy->x = line->d1;
+	vxy->y = line->d2;
+	double xprime = vxy->x + line->DX;
+	double yprime = vxy->y + line->DY;
+	if (abs(xprime - vxy->x) < 1e-6 && abs(yprime - vxy->y) < 1e-6)
+		return false;
+	else if (abs(xprime - vxy->x) < 1e-6) {
+		linxy->a2 = 0;
+		linxy ->a1 = 1;
+		linxy->b = vxy->x;
+		if ((xprime > vxy->x&&yprime < vxy->y) || (xprime<vxy->x&&yprime>vxy->y))
+			linxy->slope = -FLT_MAX;
+		else
+			linxy->slope = FLT_MAX;
+	}
+	else if (abs(yprime - vxy->y) < 1e-6) {
+		linxy->a1 = 0;
+		linxy->a2 = 1;
+		linxy->b = vxy->y;
+		linxy->slope = 0;
+	}
+	else {
+		linxy->slope = line->DX / line->DY;
+		linxy->a1 = linxy->slope;
+		linxy->a2 = 1;
+		linxy->b = vxy->y-linxy->a1*vxy->x;
+
+	}
+	linxy->symbol = true;
+	free(vxy);
+	return true;
+}
 // Intersection Vertex_2D
-bool Intersection(struct Line_2D *l1, struct Line_2D *l2, struct Vertex_2D *v1)
+/*bool Intersection(struct Line_2D *l1, struct Line_2D *l2, struct Vertex_2D *v1)
 {
 	if (abs(l1->a1 * l2->a2 - l2->a1 * l1->a2) < 1e-6)
 	{
@@ -254,7 +371,7 @@ bool Intersection(struct Line_2D *l1, struct Line_2D *l2, struct Vertex_2D *v1)
 	v1->x = -(l1->b * l2->a2 - l2->b * l1->a2) / (l1->a1 * l2->a2 - l2->a1 * l1->a2);
 	v1->y = (l1->b * l2->a1 - l2->b * l1->a1) / (l1->a2 * l2->a1 - l1->a1 * l2->a2);
 	return true;
-}
+}*/
 
 // Slope Line_2D
 bool Slope(struct Line_2D *l)
@@ -288,7 +405,7 @@ int Compare(const void *a, const void *b)
 }
 
 // transformation - O(n)
-bool transformation(struct Line_2D Line_2Ds[], struct Objfunc_2D object, int index, int *numG, int *numH)
+bool transformation_2D(struct Line_2D Line_2Ds[], struct Objfunc_2D object, int index, int *numG, int *numH)
 {
 	double thetaArc = atan(-object.c1 / object.c2);
 	double thetaDec = atan(-object.c1 / object.c2) * 180 / PI;
@@ -365,58 +482,79 @@ bool Judge(struct Line_2D I1[], struct Line_2D I2[], struct Line_2D Line_2Ds[], 
 
 
 // Make pairs
-bool MakePairs(struct Line_2D I1[], struct Line_2D I2[],struct Pair pairsG[], struct Pair pairsH[],	int numG, int numH, int *index,	double leftBound, double rightBound)
+bool MakePairs(struct flat f1[], struct flat f2[],struct flat f3[], struct Pair pairsG[], struct Pair pairsH[], struct Pair pairsE[],
+				int numG, int numH, int numE, int *indexG, int *indexE)
 {
-	int g, h, gtemp;
-	(*index) = 0;
-	for (g = 0; g < numG; g += 1) {
-		// drop
-		if (I1[g].symbol == false) {
+	int g, h, e, gT, eT;
+	(*indexG) = (*indexE) = 0;
+	for (g = 0; g < numG; g++) {
+		if (f1[g].symbol == false) {
 			continue;
 		}
-		for (gtemp = g + 1; gtemp < numG; gtemp++) {
-			if (I1[gtemp].symbol == true) {
+		for (gT= g+1; gT < numG; gT++) {
+			if (f1[gT].symbol == true) {
 				break;
 			}
 		}
-		if (gtemp == numG) break;
-
-		if (abs(I1[g].slope - I1[gtemp].slope) < 1e-6) {
-			if (I1[g].b > I1[gtemp].b) {
-				I1[gtemp].symbol = false;
+		if (gT == numG) break;
+		if (Judgeparallel(&f1[g], &f1[gT])) {
+			if (f1[g].b > f1[gT].b) {
+				f1[gT].symbol = false;
 			}
-			else {
-				I1[g].symbol = false;
+			else{
+				f1[g].symbol = false;
 			}
-			g = gtemp - 1;
+			g = gT - 1;
 			continue;
 		}
-		struct Vertex_2D *p = (struct Vertex_2D *)malloc(sizeof(struct Vertex_2D));
-		Intersection(&I1[g], &I1[gtemp], p);
-		if (p->x < leftBound || p->x > rightBound) {
-			if (abs(I1[g].slope) > abs(I1[gtemp].slope)) {
-				I1[gtemp].symbol = false;
-			}
-			else if (abs(I1[gtemp].slope) < abs(I1[gtemp].slope)) {
-				I1[g].symbol = false;
-			}
-			g = gtemp - 1;
-			continue;
-		}
-		pairsG[(*index)].index = (*index);
-		pairsG[(*index)].Line_2D1 = I1[g];
-		pairsG[(*index)].Line_2D2 = I1[gtemp];
-		pairsG[(*index)].v1.x = p->x; pairsG[(*index)].v1.y = p->y;
-
-		(*index)++;
+		pairsG[(*indexG)].index = (*indexG);
+		pairsG[(*indexG)].f1 = f1[g];
+		pairsG[(*indexG)].f2 = f1[gT];
+		pairsG[(*indexG)].symbol = true;
+		findLines(&(pairsG[(*indexG)].f1), &(pairsG[(*indexG)].f2), &(pairsG[(*indexG)].line));
+		projectionXY(&(pairsG[(*indexG)].line), &(pairsG[(*indexG)].linexy));
+		(*indexG)++;
 		g++;
 	}
+	for (e = 0; e < numG; e++) {
+		if (f3[e].symbol == false) {
+			continue;
+		}
+		for (eT = e + 1; eT < numE; eT++)
+		{
+			if (f3[eT].symbol == true) {
+				break;
+			}
 
-	return true;
+		}
+		if (eT == numE) break;
+
+		if (Judgeparallel(&f3[e], &f3[eT])) {
+			if (f3[e].b > f3[eT].b) {
+				f3[eT].symbol = false;
+			}
+			else {
+				f3[e].symbol = false;
+			}
+			e = eT - 1;
+			continue;
+		}
+		pairsE[(*indexE)].index = (*indexE);
+		pairsE[(*indexE)].f1 = f3[e];
+		pairsE[(*indexE)].f2 = f3[eT];
+		pairsE[(*indexE)].symbol = true;
+		findLines(&(pairsE[(*indexE)].f1), &(pairsE[(*indexE)].f2), &(pairsE[(*indexE)].line));
+		projectionXY(&(pairsE[(*indexE)].line), &(pairsE[(*indexE)].linexy));
+		(*indexE)++;
+		e++;
+		return true;
+	}
 }
 
+
+
 // sg, Sg, sh, Sh
-struct Vertex_2D *TestingLine_2D(struct Pair pairsG[], struct Pair pairsH[],
+struct Vertex_2D *TestingLine_2D(struct Pair_2D pairsG[], struct Pair_2D pairsH[],
 	struct Line_2D I1[], struct Line_2D I2[],
 	int numG, int numH, int numDot,
 	double *leftBound, double *rightBound)
@@ -560,27 +698,27 @@ struct Vertex_2D *TestingLine_2D(struct Pair pairsG[], struct Pair pairsH[],
 				Sg->symbol = false;
 			}
 			else {
-				if (pairsG[index].Line_2D1.a1 < pairsG[index].Line_2D2.a1) {
-					pairsG[index].Line_2D2.symbol = false;
+				if (pairsG[index].line1.a1 < pairsG[index].line2.a1) {
+					pairsG[index].line1.symbol = false;
 				}
-				else if (pairsG[index].Line_2D1.a1 > pairsG[index].Line_2D2.a1) {
-					pairsG[index].Line_2D1.symbol = false;
+				else if (pairsG[index].line1.a1 > pairsG[index].line2.a1) {
+					pairsG[index].line2.symbol = false;
 				}
 			}
 			(*rightBound) = xPrimeG;
 			return NULL;
-		}
+		} 
 		else if (Sg->a1 < 0) {
 			// x* > x'
 			if (sg != Sg) {
 				sg->symbol = false;
 			}
 			else {
-				if (pairsG[index].Line_2D1.a1 < pairsG[index].Line_2D2.a1) {
-					pairsG[index].Line_2D1.symbol = false;
+				if (pairsG[index].line1.a1 < pairsG[index].line2.a1) {
+					pairsG[index].line1.symbol = false;
 				}
-				else if (pairsG[index].Line_2D1.a1 > pairsG[index].Line_2D2.a1) {
-					pairsG[index].Line_2D2.symbol = false;
+				else if (pairsG[index].line1.a1 > pairsG[index].line2.a1) {
+					pairsG[index].line2.symbol = false;
 				}
 			}
 			(*leftBound) = xPrimeG;
@@ -595,7 +733,7 @@ struct Vertex_2D *TestingLine_2D(struct Pair pairsG[], struct Pair pairsH[],
 	}
 }
 
-void Line_2DarProgramming(void)
+/*void Line_2DarProgramming(void)
 {
 	int indexRecord = 0;
 	int numGRecord;
@@ -617,7 +755,7 @@ void Line_2DarProgramming(void)
 		Line_2DTemp.a1 = aTemp;
 		Line_2DTemp.a2 = bTemp;
 		Line_2DTemp.b = cTemp;
-		originalC.push_back(Line_2DTemp);
+		//originalC.push_back(Line_2DTemp);
 		indexRecord++;
 	}
 	scanf("%lf%lf", &object.c1, &object.c2);
@@ -630,7 +768,7 @@ void Line_2DarProgramming(void)
 	struct Pair *pairH = (struct Pair *)malloc(indexRecord * sizeof(struct Pair) / 2);
 	struct Vertex_2D *sln = NULL;
 
-	judge = transformation(Line_2Ds, object, indexRecord, &numGRecord, &numHRecord);
+	judge = transformation_2D(Line_2Ds, object, indexRecord, &numGRecord, &numHRecord);
 	if (judge == false) {
 		printf("Fatal Error at Line_2DarProgramming() - transformation()!\n");
 		exit(-1);
@@ -697,15 +835,13 @@ double findMaxMin(struct flat *flat) {
 	fx = gx - hx;
 }
 // to acheive the line rotaotion to judge
-bool rotation_3D() {
+bool rotation_3D(struct Obfunc *objfun, struct Line *line, struct flat *flat, struct flat *nflat) {
 	// you should achieve 3D first
-
-}
+	
+}*/
 
 // judge the line and drop some flats
-bool judge(struct flat *flat  ) {
-	
-}
+
 
 
 // the main function
@@ -713,12 +849,276 @@ double LP_3d() {
 
 }
 
+// test a line and judge the correctness
+
+bool Test(struct flat f1[], struct flat f2[], struct flat f3[], struct Pair pairsG[], struct Pair pairsE[], struct Pair pairsH[]
+	, int numG, int numH, int numE, int PairG, int PairH, int PairE)
+{
+	vector<struct PairXY> pairLineG;
+	vector<struct PairXY> pairLineH;
+	vector<struct PairXY> pairLineE;
+
+	int indexG = 0;
+	int indexE = 0;
+	int indexH = 0;
+	int indexI = 0;
+
+	pairLineG.clear();
+	pairLineH.clear();
+	pairLineE.clear();
+
+	int g, gT;
+	int e, eT;
+
+	for (g = 0; g < (PairG); g++) {
+		if (pairsG[g].symbol == false) {
+			continue;
+		}
+		for (gT = g + 1; gT < PairG; gT++) {
+			if (pairsG[gT].symbol == true)
+				break;
+		}
+		if (gT == PairG) break;
+		if (abs(pairsG[g].linexy.slope - pairsG[gT].linexy.slope) < 1e-6) {
+			if (pairsG[g].linexy.b > pairsG[gT].linexy.b) {
+				pairsG[gT].linexy.symbol = false;
+			}
+			else {
+				pairsG[gT].linexy.symbol = true;
+			}
+			g = gT - 1;
+			continue;
+		}
+		struct Vertex_2D *pG = (struct Vertex_2D *)malloc(sizeof(struct Vertex_2D));
+		intersection(&(pairsG[g].linexy), &(pairsG[gT].linexy), pG);
+		struct PairXY pairxyg;
+		pairxyg.symbol = false;
+		pairxyg.index = indexG;
+		pairxyg.indexOfP1 = g;
+		pairxyg.indexOfP2 = gT;
+		pairxyg.line1 = pairsG[g].linexy;
+		pairxyg.line2 = pairsG[gT].linexy;
+		pairxyg.point.x = pG->x;
+		pairxyg.point.y = pG->y;
+		pairLineG.push_back(pairxyg);
+		indexG++;
+	}
+	for (e = 0; e < PairE; e++) {
+		if (pairsE[e].symbol == false) {
+			continue;
+		}
+		for (eT = e + 1; eT < PairE; eT++) {
+			if (pairsE[eT].symbol == true) {
+				break;
+			}
+		}
+		if (eT == PairE) break;
+
+		if (abs(pairsE[e].linexy.slope - pairsE[eT].linexy.slope) < 1e-6) {
+			if (pairsE[e].linexy.b > pairsE[eT].linexy.b) {
+				pairsE[eT].linexy.symbol = false;
+			}
+			else {
+				pairsE[e].linexy.symbol = false;
+			}
+			e = eT - 1;
+			continue;
+		}
+		struct Vertex_2D *pE = (struct Vertex_2D *)malloc(sizeof(struct Vertex_2D));
+		intersection(&(pairsE[e].linexy), &(pairsE[eT].linexy), pE);
+		struct PairXY pairxye;
+		pairxye.symbol = false;
+		pairxye.index = indexE;
+		pairxye.indexOfP1 = e;
+		pairxye.indexOfP2 = eT;
+		pairxye.line1 = pairsE[e].linexy;
+		pairxye.line2 = pairsE[eT].linexy;
+		pairxye.point.x = pE->x;
+		pairxye.point.y = pE->y;
+		pairLineE.push_back(pairxye);
+		indexE++;
+	}
+	int i, iT;
+	for (i = 0; i < lineC.size(); i++) {
+		if (lineC[i].symbol == false || lineC[i].a2 < 0) {
+			continue;
+		}
+		for (iT = i + 1; iT < lineC.size(); iT++) {
+			if (lineC[i].symbol == true && lineC[i].a2 > 0) {
+				break;
+			}
+		}
+		if (iT == lineC.size()) break;
+		if (abs(lineC[i].slope - lineC[iT].slope) < 1e-6) {
+			if (lineC[i].b > lineC[iT].b) {
+				lineC[iT].symbol = false;
+			}
+			else {
+				lineC[i].symbol = false;
+			}
+			i = iT - 1;
+			continue;
+		}
+		struct Vertex_2D *vb = (struct Vertex_2D *)malloc(sizeof(struct Vertex_2D));
+		intersection(&(lineC[i]), &(lineC[iT]), vb);
+		struct Line_2D line1, line2;
+
+		line1.a1 = -lineC[i].a1 / lineC[i].a2;
+		line1.a2 = 1;
+		line1.b = lineC[i].b / lineC[i].a2;
+		line1.symbol = true;
+		line1.symbol = lineC[i].slope;
+
+		line2.a1 = -lineC[iT].a1 / lineC[iT].a2;
+		line2.a2 = 1;
+		line2.b = lineC[iT].b / lineC[iT].a2;
+		line2.symbol = true;
+		line2.symbol = lineC[iT].slope;
+
+		struct PairXY pb;
+		pb.index = -indexI;
+		pb.indexOfP1 = i;
+		pb.indexOfP2 = iT;
+		pb.line1 = line1;
+		pb.line2 = line2;
+		pb.point.x = vb->x;
+		pb.point.y = vb->y;
+		pb.symbol = false;
+		pairLineG.push_back(pb);
+	}
+
+	srand((unsigned int)time(NULL));
+	int index = ((pairLineG.size() + pairLineE.size()) == 0) ? 0 : (rand() % (pairLineG.size() + pairLineE.size()));
+
+	double Originalxm;
+	double Originalym;
+	bool gTeF = true;
+	if (index >= pairLineG.size()) {
+		Originalxm = pairLineE[index - pairLineG.size()].point.x;
+		Originalym = pairLineE[index - pairLineG.size()].point.y;
+		gTeF = false;
+	}
+	else {
+		Originalxm = pairLineE[index].point.x;
+		Originalym = pairLineE[index].point.y;
+		gTeF = true;
+	}
+
+	double gmax = -FLT_MAX, hmin = FLT_MAX, emax = -FLT_MAX;
+	vector<struct flat *>gAfterTrans;
+	vector<struct flat *>hAfterTrans;
+	vector<struct flat *>eAfterTrans;
+	vector<struct flat *>gAfterTransoptimal;
+	vector<struct flat *>hAfterTransoptimal;
+	vector<struct flat *>eAfterTransoptimal;
+	for (int i = 0; i < numG; i++) {
+		if (f1[i].symbol == false) {
+			continue;
+		}
+		struct flat *temp = (struct flat *)malloc(sizeof(struct flat));
+		temp->a1 = f1[i].a1;
+		temp->a2 = f1[i].a2;
+		temp->a3 = f1[i].a3;
+		temp->b = f1[i].b-(f1[i].a1*(-Originalxm))-(f1[i].a2*(-Originalym)) ;
+		Vvector(temp);
+		temp->symbol = false;
+		gAfterTrans.push_back(temp);
+
+		if (gmax < temp->b) gmax = temp->b;
+	}
+	for (int i = 0; i < numH; i++) {
+		if (f2[i].symbol == false) {
+			continue;
+		}
+		struct flat *temp = (struct flat *)malloc(sizeof(struct flat));
+		temp->a1 = f2[i].a1;
+		temp->a2 = f2[i].a2;
+		temp->a3 = f2[i].a3;
+		temp->b = f2[i].b - (f2[i].a1*(-Originalxm)) - (f2[i].a2*(-Originalym));
+		Vvector(temp);
+		temp->symbol = false;
+		gAfterTrans.push_back(temp);
+
+		if (gmax < temp->b) hmin = temp->b;
+	}
+	for (int i = 0; i < numE; i++) {
+		if (f3[i].symbol == false) {
+			continue;
+		}
+		struct flat *temp = (struct flat *)malloc(sizeof(struct flat));
+		temp->a1 = f3[i].a1;
+		temp->a2 = f3[i].a2;
+		temp->a3 = f3[i].a3;
+		temp->b = f3[i].b - (f3[i].a1*(-Originalxm)) - (f3[i].a2*(-Originalym));
+		Vvector(temp);
+		temp->symbol = false;
+		gAfterTrans.push_back(temp);
+
+		if (gmax < temp->b) emax = temp->b;
+	}
+
+	double fx;
+	fx = gmax - hmin;
+	double xoptimal,yoptimal;
+	//use the equations in the paper to judge the optimal's position.
+	//it should be minde that The lamda should be minded.
+	for (int j = 0; j < lineC.size(); j++) {
+		if (f2[j].symbol = false) {
+			if (f1[j].b - f2[j].b < 0) {
+				if (gmax < 0 && gmax <= hmin&&emax <= 0) {
+					//minimize g can get the optimal value
+					f2[j].symbol = true;
+				}
+				else if (gmax > 0 && gmax - hmin >= 0 && emax >= 0) {
+					f2[j].symbol =false;
+				}
+			}
+			
+		}
+		for (int m = 0; m < lineC.sizeof(); m++) {
+			if (f2[m].symbol = false) {
+				if (f1[m].b - f2[m].b > 0) {
+					if (gmax > 0 && gmax >= hmin&&emax >= 0) {
+						//minimize g can get the optimal value
+						f2[m].symbol = true;
+					}
+					else if (  gmax - hmin > 0 && emax < 0) {
+						f2[m].symbol = false;
+					}
+				}
+			
+	}
+		
+	}
+		for (int h = 0; h < lineC.sizeof();h++) {
+			if (f2[h].symbol = false) {
+				if (f1[h].b - f2[h].b > 0) {
+					if ( gmax >= hmin&&emax > 0) {
+						//minimize g can get the optimal value
+						f2[h].symbol = true;
+					}
+				}
+				
+			}
 
 
+}
 //main function
 int main(void) {
 
 	LP_3d();
+	struct flat *test = (struct flat *)malloc(sizeof(struct flat));
+	test->a1 = test->a2 = test->b = 1;
+	Vvector(test);
+
+	struct flat *flat= (struct flat *)malloc(sizeof(struct flat));
+	struct Line *line= (struct Line *)malloc(sizeof(struct Line));
+	struct Obfunc *obfunc = (struct Obfunc *)malloc(sizeof(struct Obfunc));
+
+	obfunc->r1 = obfunc->r2 = obfunc->r3 = 1;
+
+	
+
 
 	return 0;
 }
