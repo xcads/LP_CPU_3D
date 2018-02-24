@@ -1,19 +1,3 @@
 # LP_CPU_3D
 
-## TO DO LIST
-
-~~1.find the move apporah~~
-
-~~2.find the optimal line~~
-
-
-~~a. do the line and find the equation~~s
- 
-
-    b. prune&search VS simplex(ppt)   
-    
-    c.find the optimal
- 
-  
-
-3.debug
+finish the code and can run 
